@@ -52,7 +52,8 @@ class EntryTerminal:
         self.table_name = "players"
         self.id_column = "id"
         self.codename_column = "codename"
-        
+        self._ensure_table()
+
         # Teams
         self.teams = [
             Team("RED TEAM", "#8B0000", 20),
@@ -73,14 +74,29 @@ class EntryTerminal:
 
         self.create_ui()
 
+    def _ensure_table(self):
+        """Create the players table if it doesn't exist."""
+        try:
+            with psycopg2.connect(**self.pg_config) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS players (
+                            id INTEGER PRIMARY KEY,
+                            codename TEXT NOT NULL,
+                        );
+                    """)
+                    cur.execute("""
+                        ALTER TABLE players ADD COLUMN IF NOT EXISTS team INTEGER NOT NULL DEFAULT 0;
+                    """)
+                conn.commit()
+        except Exception as e:
+            messagebox.showerror("DB Error", str(e))
 
     def _db_upsert(self, pid: int, codename: str, team: int = 0):
-        """Insert or update a player row, including team (0=red, 1=green)."""
         with psycopg2.connect(**self.pg_config) as conn:
             with conn.cursor() as cur:
-                cur.execute("DELETE FROM players WHERE id = %s;", (pid,))
                 cur.execute(
-                    "INSERT INTO players (id, codename) VALUES (%s, %s);",
+                    "INSERT INTO players (id, codename) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING;",
                     (pid, codename)
                 )
             conn.commit()
@@ -564,11 +580,12 @@ class EntryTerminal:
 
     # Function to create key-value pair for hardware_id and Team
     def create_hardware_team_pair(self, h_id, team_idx):
-        player_id = id_str.strip()
-        if team_idx == 0:
-            HARDWARE_TEAM_PAIR[player_id] = "RED"
-        else:
-            HARDWARE_TEAM_PAIR[player_id] = "GREEN"
+        # h_id = self.get_hardware_id() This tries to read hardware before the user has a chance to input it.
+        if (team_idx == 0):
+            HARDWARE_TEAM_PAIR[h_id] = "RED"
+        elif (team_idx == 1):
+            HARDWARE_TEAM_PAIR[h_id] = "GREEN"
+        # Save the updated mapping to JSON after adding a new pair!
         self.save_hardware_team_pair()
 
     # Function to create a pop up for hardware ID
