@@ -91,37 +91,52 @@ class PlayActionDisplay:
     # DB helpers
 
     def _load_players_from_db(self):
-        """Load all players from DB using the saved team column (0=red, 1=green)."""
+     
+        import json
+        import os
+
+        team_map = {}
+        try:
+            if os.path.exists("hardware_team.json"):
+                with open("hardware_team.json", "r") as f:
+                    raw = json.load(f)
+                    team_map = {str(k): str(v).upper() for k, v in raw.items()}
+        except Exception as e:
+            print(f"[PlayAction] Could not load hardware_team.json: {e}")
+
         try:
             with psycopg2.connect(**self.pg_config) as conn:
                 with conn.cursor() as cur:
-                    cur.execute(
-                        "SELECT id, codename FROM players ORDER BY id;")
+                    cur.execute("SELECT id, codename FROM players ORDER BY id;")
                     rows = cur.fetchall()
 
+            # clear first
+            self.players = [{}, {}]
+
             for pid, codename in rows:
-                team_idx = 0  # Default to red team
-                self.players[team_idx][str(pid)] = {
+                pid_str = str(pid)
+                team_name = team_map.get(pid_str)
+
+                if team_name == "RED":
+                    team_idx = 0
+                elif team_name == "GREEN":
+                    team_idx = 1
+                else:
+                    # if not mapped, skip or default
+                    print(f"[PlayAction] Warning: no team mapping for player id {pid_str}")
+                    continue
+
+                self.players[team_idx][pid_str] = {
                     "codename": codename,
-                    "score":    BASE_SCORE,
-                    "hits":     0,
+                    "score": 0,
+                    "hits": 0,
                 }
-            print(
-                f"[PlayAction] Loaded {len(self.players[0])} red, {len(self.players[1])} green players.")
+
+            print(f"[PlayAction] Loaded {len(self.players[0])} red, {len(self.players[1])} green players.")
+
         except Exception as e:
             print(f"[PlayAction] DB load error: {e}")
-
-    def _get_codename(self, equipment_id: str) -> str:
-        for team in self.players:
-            if equipment_id in team:
-                return team[equipment_id]["codename"]
-        return f"ID#{equipment_id}"
-
-    def _get_team_of(self, equipment_id: str) -> Optional[int]:
-        for idx, team in enumerate(self.players):
-            if equipment_id in team:
-                return idx
-        return None
+            self.players = [{}, {}]
 
     # UDP listener (runs in background thread)
 
