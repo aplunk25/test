@@ -564,12 +564,11 @@ class EntryTerminal:
 
     # Function to create key-value pair for hardware_id and Team
     def create_hardware_team_pair(self, h_id, team_idx):
-        # h_id = self.get_hardware_id() This tries to read hardware before the user has a chance to input it.
-        if (team_idx == 0):
-            HARDWARE_TEAM_PAIR[h_id] = "RED"
-        elif (team_idx == 1):
-            HARDWARE_TEAM_PAIR[h_id] = "GREEN"
-        # Save the updated mapping to JSON after adding a new pair!
+        player_id = id_str.strip()
+        if team_idx == 0:
+            HARDWARE_TEAM_PAIR[player_id] = "RED"
+        else:
+            HARDWARE_TEAM_PAIR[player_id] = "GREEN"
         self.save_hardware_team_pair()
 
     # Function to create a pop up for hardware ID
