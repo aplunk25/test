@@ -82,12 +82,10 @@ class EntryTerminal:
                     cur.execute("""
                         CREATE TABLE IF NOT EXISTS players (
                             id INTEGER PRIMARY KEY,
-                            codename TEXT NOT NULL,
+                            codename TEXT NOT NULL
                         );
                     """)
-                    cur.execute("""
-                        ALTER TABLE players ADD COLUMN IF NOT EXISTS team INTEGER NOT NULL DEFAULT 0;
-                    """)
+                    
                 conn.commit()
         except Exception as e:
             messagebox.showerror("DB Error", str(e))
@@ -96,7 +94,7 @@ class EntryTerminal:
         with psycopg2.connect(**self.pg_config) as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO players (id, codename) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING;",
+                    "INSERT INTO players (id, codename) VALUES (%s, %s);",
                     (pid, codename)
                 )
             conn.commit()
