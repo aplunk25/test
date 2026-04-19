@@ -96,12 +96,12 @@ class PlayActionDisplay:
             with psycopg2.connect(**self.pg_config) as conn:
                 with conn.cursor() as cur:
                     cur.execute(
-                        "SELECT id, codename FROM players ORDER BY id;")
+                        "SELECT id, codename, team FROM players ORDER BY id;")
                     rows = cur.fetchall()
 
-            for pid, codename in rows:
-                team_idx = 0 if str(pid) in self.players[0] else 1 
-  
+            for pid, codename, team_idx in rows:
+                if team_idx not in (0, 1):
+                    team_idx = 0
                 self.players[team_idx][str(pid)] = {
                     "codename": codename,
                     "score":    BASE_SCORE,
